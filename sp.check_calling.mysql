@@ -1,0 +1,58 @@
+-- MySQL Stored Procedure to Check for Calling Activity
+-- Copyright 2016 INVITE Communications Co., Ltd. All Rights Reserved.
+-- 
+-- This program is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+-- (at your option) any later version.
+-- 
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+-- 
+-- You should have received a copy of the GNU General Public License
+-- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-- 
+DROP PROCEDURE IF EXISTS test.check_calling;
+DELIMITER //
+CREATE PROCEDURE test.check_calling(in var_did VARCHAR(11), in var_date DATE)
+BEGIN
+
+    IF var_date < DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 2 MONTH), '%y-%m-01') 
+    THEN
+        -- Check cdr_archive
+        SELECT 
+            COUNT(*), 
+            disposition
+        FROM
+            operations.cdr_archive
+        WHERE 
+        	(
+        		src = var_did OR
+        		dst = var_did
+        	) AND 
+        	YEAR(calldate) = YEAR(var_date) AND
+        	MONTH(calldate) = MONTH(var_date)
+        GROUP BY 
+            disposition;
+    ELSE
+        -- Check cdr
+    	SELECT
+    	    COUNT(*), 
+    	    disposition 
+    	FROM
+    	    operations.cdr 
+    	WHERE
+    	    (
+    	        src = var_did OR
+    	        dst = var_did
+    	    ) AND
+    	    YEAR(calldate) = YEAR(var_date) AND
+    	    MONTH(calldate) = MONTH(var_date) 
+    	GROUP BY
+    	    disposition;
+    END IF;
+    
+END//
+DELIMITER ;
